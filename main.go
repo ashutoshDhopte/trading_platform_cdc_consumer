@@ -105,7 +105,7 @@ func pushToWebSocket(message After) {
 	// The message to be sent to the WebSocket hub
 
 	_ = godotenv.Load()
-	mainGoBackendUrl := os.Getenv("MAIN_GO_BACKEND_URL")
+	mainGoBackendUrl := os.Getenv("MAIN_BACKEND_BROADCAST_URL")
 
 	jsonData, err := json.Marshal(message)
 	if err != nil {
