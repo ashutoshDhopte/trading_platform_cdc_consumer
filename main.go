@@ -30,8 +30,15 @@ type DebeziumPayload struct {
 }
 
 func main() {
+
+	bootstrapServers := os.Getenv("KAFKA_BOOTSTRAP_SERVERS")
+	if bootstrapServers == "" {
+		bootstrapServers = "localhost:9092"
+	}
+
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": "localhost:9092",
+		// Use the variable here instead of a hardcoded string.
+		"bootstrap.servers": bootstrapServers,
 		"group.id":          "trading-feed-consumer",
 		"auto.offset.reset": "earliest",
 	})
