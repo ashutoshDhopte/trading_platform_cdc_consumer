@@ -14,22 +14,19 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type After struct {
+	UserID             int    `json:"user_id"`
+	StockID            int    `json:"stock_id"`
+	TradeType          string `json:"trade_type"`
+	Quantity           int    `json:"quantity"`
+	PricePerShareCents int    `json:"price_per_share_cents"`
+}
+
 // DebeziumPayload represents the structure of the JSON message from Debezium.
 type DebeziumPayload struct {
 	Payload struct {
-		After struct {
-			UserID    int    `json:"user_id"`
-			StockID   int    `json:"stock_id"`
-			TradeType string `json:"trade_type"`
-			Quantity  int    `json:"quantity_traded"`
-		} `json:"after"`
+		After `json:"after"`
 	} `json:"payload"`
-}
-
-// WebSocketMessage is the structure of the message we'll send to the WebSocket hub.
-type WebSocketMessage struct {
-	Type    string `json:"type"`
-	Content string `json:"content"`
 }
 
 func main() {
@@ -76,16 +73,17 @@ func main() {
 
 				// Create a user-friendly message.
 				// In a real app, you'd look up user/stock names from IDs.
-				feedMessage := fmt.Sprintf("A user just %s %d shares of stock ID %d!",
+				feedMessage := fmt.Sprintf("A user just %s %d shares of stock ID %d at $%d!",
 					msg.Payload.After.TradeType,
 					msg.Payload.After.Quantity,
 					msg.Payload.After.StockID,
+					msg.Payload.After.PricePerShareCents/100,
 				)
 
 				log.Printf("Processed trade: %s\n", feedMessage)
 
 				// Push this message to the main WebSocket hub.
-				pushToWebSocket(feedMessage)
+				pushToWebSocket(msg.Payload.After)
 
 			case kafka.Error:
 				fmt.Fprintf(os.Stderr, "%% Error: %v\n", e)
@@ -96,18 +94,13 @@ func main() {
 }
 
 // pushToWebSocket sends the formatted message to a new endpoint on your main Go backend.
-func pushToWebSocket(message string) {
+func pushToWebSocket(message After) {
 	// The message to be sent to the WebSocket hub
 
 	_ = godotenv.Load()
 	mainGoBackendUrl := os.Getenv("MAIN_GO_BACKEND_URL")
 
-	wsMsg := WebSocketMessage{
-		Type:    "TRADING_FEED_UPDATE",
-		Content: message,
-	}
-
-	jsonData, err := json.Marshal(wsMsg)
+	jsonData, err := json.Marshal(message)
 	if err != nil {
 		log.Printf("Error marshalling WebSocket message: %v\n", err)
 		return
